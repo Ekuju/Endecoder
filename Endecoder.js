@@ -11,6 +11,7 @@ Endecoder.TYPE_INTEGER = 3;
 Endecoder.TYPE_FLOAT = 4;
 Endecoder.TYPE_STRING = 5;
 Endecoder.TYPE_BOOLEAN = 6;
+Endecoder.TYPE_ENUM = 7;
 
 Endecoder.ENCODE_FUNCTION_MAP = {};
 Endecoder.DECODE_FUNCTION_MAP = {};
@@ -29,7 +30,7 @@ Endecoder._endian = null;
 Endecoder._index = 0;
 
 Endecoder.encode = function(element, template) {
-    const type = Endecoder._getType(element);
+    const type = Endecoder._getType(element, template);
     const call = Endecoder.ENCODE_FUNCTION_MAP[type];
 
     const array = [];
@@ -52,7 +53,7 @@ Endecoder._encodeObject = function(array, element, template) {
 
     const templateKeys = Object.keys(template);
     if (templateKeys.length > 255) {
-        throw 'Template object must have less than 255 keys.';
+        throw 'Template object must have less than 256 keys.';
     }
     templateKeys.sort();
 
@@ -69,7 +70,7 @@ Endecoder._encodeObject = function(array, element, template) {
 
         array.push(i);
 
-        const type = Endecoder._getType(part);
+        const type = Endecoder._getType(part, templatePart);
         const call = Endecoder.ENCODE_FUNCTION_MAP[type];
 
         call(array, part, templatePart);
@@ -80,7 +81,7 @@ Endecoder._encodeArray = function(array, element, template) {
     array.push(Endecoder.TYPE_ARRAY);
 
     if (element.length > 255) {
-        throw 'Array size must be less than 255.';
+        throw 'Array size must be less than 256.';
     }
 
     array.push(element.length);
@@ -89,7 +90,7 @@ Endecoder._encodeArray = function(array, element, template) {
     for (let i = 0; i < element.length; i++) {
         const part = element[i];
 
-        const type = Endecoder._getType(part);
+        const type = Endecoder._getType(part, null);
         const call = Endecoder.ENCODE_FUNCTION_MAP[type];
 
         call(array, part, templatePart);
@@ -148,6 +149,22 @@ Endecoder._encodeBoolean = function(array, element) {
     array.push(Endecoder.TYPE_BOOLEAN);
 
     array.push(Endecoder._readByteFromBoolean(element));
+};
+
+Endecoder._encodeEnum = function(array, element, template) {
+    array.push(Endecoder.TYPE_ENUM);
+
+    if (template.length > 255) {
+        throw 'The template enum set must have less than 256 entries.';
+    }
+
+    const index = template.indexOf(element);
+    if (index === -1) {
+        console.error('Cannot encode enum ' + element + '.');
+        throw 'The enum being encoded must be part of the template enum set.';
+    }
+
+    array.push(index);
 };
 
 Endecoder._decode = function(array, template) {
@@ -233,7 +250,13 @@ Endecoder._decodeBoolean = function(array) {
     return Endecoder._readBooleanFromByte(byte);
 };
 
-Endecoder._getType = function(element) {
+Endecoder._decodeEnum = function(array, template) {
+    const index = array[Endecoder._index++];
+
+    return template[index];
+};
+
+Endecoder._getType = function(element, template) {
     let type = Endecoder.TYPE_NULL;
 
     if (typeof element === 'object') {
@@ -254,6 +277,10 @@ Endecoder._getType = function(element) {
 
     if (typeof element === 'string') {
         type = Endecoder.TYPE_STRING;
+
+        if (template instanceof Array) {
+            type = Endecoder.TYPE_ENUM;
+        }
     }
 
     if (typeof element === 'boolean') {
@@ -351,6 +378,7 @@ Endecoder._initialize = function() {
     Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_FLOAT] = Endecoder._encodeFloat;
     Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_STRING] = Endecoder._encodeString;
     Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_BOOLEAN] = Endecoder._encodeBoolean;
+    Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_ENUM] = Endecoder._encodeEnum;
 
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_NULL] = function() {throw 'No decode function defined for type null.'};
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_OBJECT] = Endecoder._decodeObject;
@@ -359,6 +387,7 @@ Endecoder._initialize = function() {
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_FLOAT] = Endecoder._decodeFloat;
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_STRING] = Endecoder._decodeString;
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_BOOLEAN] = Endecoder._decodeBoolean;
+    Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_ENUM] = Endecoder._decodeEnum;
 };
 
 Endecoder._initialize();

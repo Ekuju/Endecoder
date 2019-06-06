@@ -6,6 +6,7 @@
 var template = {
 	"value1": [],
 	"val2": null,
+	"enumTest": ["valueA", "valueB", "apples", "oranges"],
 	"3test": {
 		"finally": null,
 		"again": null,
@@ -23,6 +24,7 @@ var template = {
 var json = {
 	"value1": [0, 1],
 	"val2": 2,
+	"enumTest": "apples",
 	"3test": {
 		"finally": "blah!",
 		"again": 3.14159,
