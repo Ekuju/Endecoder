@@ -48,7 +48,7 @@ var json = {
 var encoded = Endecoder.encode(json, template);
 console.log('Encoded: ', new Uint8Array(encoded));
 // Encoded:
-//   Uint8Array(204) [1, 5, 0, 1, 3, 0, 4, 64, 73, 15, 208, 1, 2, 4, 3, 0, 0, 0, 0, 3, 0, 0, 0, 3, 3, 0, 0, 0, 5, 3, 0, 0, 0, 6, 2, 5, 5, 98, 108, 97, 104, 33, 1, 6, 1, 2, 2, 3, 1, 2, 1, 6, 0, 3, 3, 0, 29, 88, 51, 1, 2, 0, 6, 1, 2, 5, 52, 84, 104, 105, 115, 32, 105, 115, 32, 104, 111, 119, 32, 121, 111, 117, 32, 119, 111, 117, 108, 100, 32, 114, 101, 112, 114, 101, 115, 101, 110, 116, 32, 97, …]
+//   Uint8Array(316) [1, 6, 0, 1, 3, 0, 4, 64, 73, 15, 208, 1, 2, 4, 3, 0, 0, 0, 0, 3, 0, 0, 0, 3, 3, 0, 0, 0, 5, 3, 0, 0, 0, 6, 2, 5, 0, 5, 0, 98, 0, 108, 0, 97, 0, 104, 0, 33, 1, 7, 2, 2, 6, 1, 3, 2, 3, 1, 2, 1, 6, 0, 3, 3, 0, 29, 88, 51, 1, 2, 0, 6, 1, 2, 5, 0, 52, 0, 84, 0, 104, 0, 105, 0, 115, 0, 32, 0, 105, 0, 115, 0, 32, 0, 104, 0, 111, 0, 119, 0, …]
 
 var decoded = Endecoder.decode(encoded, template);
 console.log('Decoded: ', JSON.stringify(decoded));
@@ -59,6 +59,7 @@ console.log('Decoded: ', JSON.stringify(decoded));
 //			"finalInnerVariable": [0, 3, 5, 6],
 //			"finally": "blah!"
 //		},
+//		"enumTest": "apples",
 //		"finalOuter": true,
 //		"oneMore": [{
 //			"exampleAgain2": false,
