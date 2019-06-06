@@ -2,8 +2,7 @@
  * Created by Trent on 1/16/2017.
  */
 
-var Endecoder = function() {
-};
+const Endecoder = {};
 
 Endecoder.TYPE_NULL = 0;
 Endecoder.TYPE_OBJECT = 1;
@@ -18,6 +17,8 @@ Endecoder.DECODE_FUNCTION_MAP = {};
 
 Endecoder.LITTLE_ENDIAN = 0;
 Endecoder.BIG_ENDIAN = 1;
+Endecoder.STRING_LENGTH_BYTES = 2; // up to 65536 characters
+Endecoder.STRING_CHARACTER_BYTES = 2; // basically utf-16
 
 Endecoder._BUFFER = new ArrayBuffer(4);
 Endecoder._BYTE_BUFFER = new Uint8Array(Endecoder._BUFFER);
@@ -28,10 +29,10 @@ Endecoder._endian = null;
 Endecoder._index = 0;
 
 Endecoder.encode = function(element, template) {
-    let type = Endecoder._getType(element);
-    let call = Endecoder.ENCODE_FUNCTION_MAP[type];
+    const type = Endecoder._getType(element);
+    const call = Endecoder.ENCODE_FUNCTION_MAP[type];
 
-    let array = [];
+    const array = [];
     call(array, element, template);
 
     return new Uint8Array(array).buffer;
@@ -49,27 +50,27 @@ Endecoder.decode = function(array, template) {
 Endecoder._encodeObject = function(array, element, template) {
     array.push(Endecoder.TYPE_OBJECT);
 
-    let templateKeys = Object.keys(template);
+    const templateKeys = Object.keys(template);
     if (templateKeys.length > 255) {
         throw 'Template object must have less than 255 keys.';
     }
     templateKeys.sort();
 
-    let elementKeys = Object.keys(element);
+    const elementKeys = Object.keys(element);
     array.push(elementKeys.length);
 
     for (let i = 0; i < templateKeys.length; i++) {
-        let key = templateKeys[i];
-        let part = element[key];
-        let templatePart = template[key];
+        const key = templateKeys[i];
+        const part = element[key];
+        const templatePart = template[key];
         if (part === undefined) {
             continue;
         }
 
         array.push(i);
 
-        let type = Endecoder._getType(part);
-        let call = Endecoder.ENCODE_FUNCTION_MAP[type];
+        const type = Endecoder._getType(part);
+        const call = Endecoder.ENCODE_FUNCTION_MAP[type];
 
         call(array, part, templatePart);
     }
@@ -84,12 +85,12 @@ Endecoder._encodeArray = function(array, element, template) {
 
     array.push(element.length);
 
-    let templatePart = template[0];
+    const templatePart = template[0];
     for (let i = 0; i < element.length; i++) {
-        let part = element[i];
+        const part = element[i];
 
-        let type = Endecoder._getType(part);
-        let call = Endecoder.ENCODE_FUNCTION_MAP[type];
+        const type = Endecoder._getType(part);
+        const call = Endecoder.ENCODE_FUNCTION_MAP[type];
 
         call(array, part, templatePart);
     }
@@ -98,9 +99,9 @@ Endecoder._encodeArray = function(array, element, template) {
 Endecoder._encodeInteger = function(array, element) {
     array.push(Endecoder.TYPE_INTEGER);
 
-    let bytes = Endecoder._readByteArrayFromInt(element);
+    const bytes = Endecoder._readByteArrayFromInt(element);
     for (let i = 0; i < bytes.length; i++) {
-        let byte = bytes[i];
+        const byte = bytes[i];
 
         array.push(byte);
     }
@@ -109,9 +110,9 @@ Endecoder._encodeInteger = function(array, element) {
 Endecoder._encodeFloat = function(array, element) {
     array.push(Endecoder.TYPE_FLOAT);
 
-    let bytes = Endecoder._readByteArrayFromFloat(element);
+    const bytes = Endecoder._readByteArrayFromFloat(element);
     for (let i = 0; i < bytes.length; i++) {
-        let byte = bytes[i];
+        const byte = bytes[i];
 
         array.push(byte);
     }
@@ -120,15 +121,26 @@ Endecoder._encodeFloat = function(array, element) {
 Endecoder._encodeString = function(array, element) {
     array.push(Endecoder.TYPE_STRING);
 
-    if (element.length > 255) {
-        throw 'String length must be less than 255.';
+    if (element.length >= Math.pow(2, Endecoder.STRING_LENGTH_BYTES * 8)) {
+        throw 'String length must be less than ' + Math.pow(2, Endecoder.STRING_LENGTH_BYTES * 8) + '.';
     }
-    array.push(element.length);
+
+    const bytes = Endecoder._readByteArrayFromInt(element.length);
+    for (let i = 0; i < Endecoder.STRING_LENGTH_BYTES; i++) {
+        const byte = bytes[bytes.length - Endecoder.STRING_LENGTH_BYTES + i];
+
+        array.push(byte);
+    }
 
     for (let i = 0; i < element.length; i++) {
-        let value = element.charCodeAt(i);
+        const value = element.charCodeAt(i);
+        const bytes = Endecoder._readByteArrayFromInt(value);
 
-        array.push(value);
+        for (let a = 0; a < Endecoder.STRING_CHARACTER_BYTES; a++) {
+            const byte = bytes[bytes.length - Endecoder.STRING_CHARACTER_BYTES + a];
+
+            array.push(byte);
+        }
     }
 };
 
@@ -139,26 +151,26 @@ Endecoder._encodeBoolean = function(array, element) {
 };
 
 Endecoder._decode = function(array, template) {
-    let type = array[Endecoder._index++];
-    let call = Endecoder.DECODE_FUNCTION_MAP[type];
+    const type = array[Endecoder._index++];
+    const call = Endecoder.DECODE_FUNCTION_MAP[type];
 
     return call(array, template);
 };
 
 Endecoder._decodeObject = function(array, template) {
-    let keys = Object.keys(template);
+    const keys = Object.keys(template);
     keys.sort();
 
-    let finalObject = {};
+    const finalObject = {};
 
-    let keyCount = array[Endecoder._index++];
+    const keyCount = array[Endecoder._index++];
     for (let i = 0; i < keyCount; i++) {
-        let keyIndex = array[Endecoder._index++];
-        let key = keys[keyIndex];
-        let part = template[key];
+        const keyIndex = array[Endecoder._index++];
+        const key = keys[keyIndex];
+        const part = template[key];
 
-        let type = array[Endecoder._index++];
-        let call = Endecoder.DECODE_FUNCTION_MAP[type];
+        const type = array[Endecoder._index++];
+        const call = Endecoder.DECODE_FUNCTION_MAP[type];
 
         finalObject[key] = call(array, part);
     }
@@ -167,13 +179,13 @@ Endecoder._decodeObject = function(array, template) {
 };
 
 Endecoder._decodeArray = function(array, template) {
-    let length = array[Endecoder._index++];
+    const length = array[Endecoder._index++];
 
-    let finalArray = [];
+    const finalArray = [];
 
     for (let i = 0; i < length; i++) {
-        let type = array[Endecoder._index++];
-        let call = Endecoder.DECODE_FUNCTION_MAP[type];
+        const type = array[Endecoder._index++];
+        const call = Endecoder.DECODE_FUNCTION_MAP[type];
 
         finalArray[i] = call(array, template[0]);
     }
@@ -182,30 +194,41 @@ Endecoder._decodeArray = function(array, template) {
 };
 
 Endecoder._decodeInteger = function(array) {
-    let bytes = [array[Endecoder._index++], array[Endecoder._index++], array[Endecoder._index++], array[Endecoder._index++]];
+    const bytes = [array[Endecoder._index++], array[Endecoder._index++], array[Endecoder._index++], array[Endecoder._index++]];
 
     return Endecoder._readIntFromByteArray(bytes);
 };
 
 Endecoder._decodeFloat = function(array) {
-    let bytes = [array[Endecoder._index++], array[Endecoder._index++], array[Endecoder._index++], array[Endecoder._index++]];
+    const bytes = [array[Endecoder._index++], array[Endecoder._index++], array[Endecoder._index++], array[Endecoder._index++]];
 
     return Endecoder._readFloatFromByteArray(bytes);
 };
 
 Endecoder._decodeString = function(array) {
-    let length = array[Endecoder._index++];
+    const lengthBytes = [0, 0, 0, 0];
+    for (let i = 0; i < Endecoder.STRING_LENGTH_BYTES; i++) {
+        lengthBytes[lengthBytes.length - Endecoder.STRING_LENGTH_BYTES + i] = array[Endecoder._index++];
+    }
+
+    const length = Endecoder._readIntFromByteArray(lengthBytes);
 
     let string = '';
     for (let i = 0; i < length; i++) {
-        string += String.fromCharCode(array[Endecoder._index++]);
+        const bytes = [0, 0, 0, 0];
+        for (let i = 0; i < Endecoder.STRING_CHARACTER_BYTES; i++) {
+            bytes[bytes.length - Endecoder.STRING_CHARACTER_BYTES + i] = array[Endecoder._index++];
+        }
+        const value = Endecoder._readIntFromByteArray(bytes);
+
+        string += String.fromCharCode(value);
     }
 
     return string;
 };
 
 Endecoder._decodeBoolean = function(array) {
-    let byte = array[Endecoder._index++];
+    const byte = array[Endecoder._index++];
 
     return Endecoder._readBooleanFromByte(byte);
 };
@@ -302,14 +325,14 @@ Endecoder._getEndian = function() {
         return Endecoder._endian;
     }
 
-    var tempArrayBuffer = new ArrayBuffer(4);
-    var tempByteBuffer = new Uint8Array(tempArrayBuffer);
-    var tempIntBuffer = new Int32Array(tempArrayBuffer);
+    const tempArrayBuffer = new ArrayBuffer(4);
+    const tempByteBuffer = new Uint8Array(tempArrayBuffer);
+    const tempIntBuffer = new Int32Array(tempArrayBuffer);
     tempByteBuffer[3] = 0;
     tempByteBuffer[2] = 0;
     tempByteBuffer[1] = 0;
     tempByteBuffer[0] = 1;
-    let value = tempIntBuffer[0];
+    const value = tempIntBuffer[0];
 
     if (value === 1) {
         Endecoder._endian = Endecoder.LITTLE_ENDIAN;
