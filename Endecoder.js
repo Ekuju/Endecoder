@@ -4,7 +4,7 @@
 
 const Endecoder = {};
 
-Endecoder.TYPE_NULL = 0;
+Endecoder.TYPE_INVALID = 0;
 Endecoder.TYPE_OBJECT = 1;
 Endecoder.TYPE_ARRAY = 2;
 Endecoder.TYPE_INTEGER = 3;
@@ -12,6 +12,7 @@ Endecoder.TYPE_FLOAT = 4;
 Endecoder.TYPE_STRING = 5;
 Endecoder.TYPE_BOOLEAN = 6;
 Endecoder.TYPE_ENUM = 7;
+Endecoder.TYPE_NULL = 8;
 
 Endecoder.ENCODE_FUNCTION_MAP = {};
 Endecoder.DECODE_FUNCTION_MAP = {};
@@ -46,6 +47,10 @@ Endecoder.decode = function(array, template) {
 
     Endecoder._index = 0;
     return Endecoder._decode(array, template);
+};
+
+Endecoder._encodeNull = function(array) {
+    array.push(Endecoder.TYPE_NULL);
 };
 
 Endecoder._encodeObject = function(array, element, template) {
@@ -174,6 +179,10 @@ Endecoder._decode = function(array, template) {
     return call(array, template);
 };
 
+Endecoder._decodeNull = function() {
+    return null;
+};
+
 Endecoder._decodeObject = function(array, template) {
     const keys = Object.keys(template);
     keys.sort();
@@ -257,7 +266,7 @@ Endecoder._decodeEnum = function(array, template) {
 };
 
 Endecoder._getType = function(element, template) {
-    let type = Endecoder.TYPE_NULL;
+    let type = Endecoder.TYPE_INVALID;
 
     if (typeof element === 'object') {
         type = Endecoder.TYPE_OBJECT;
@@ -285,6 +294,10 @@ Endecoder._getType = function(element, template) {
 
     if (typeof element === 'boolean') {
         type = Endecoder.TYPE_BOOLEAN;
+    }
+
+    if (element === null || element === undefined) {
+        type =  Endecoder.TYPE_NULL;
     }
 
     return type;
@@ -371,7 +384,7 @@ Endecoder._getEndian = function() {
 };
 
 Endecoder._initialize = function() {
-    Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_NULL] = function() {throw 'No encode function defined for type null.'};
+    Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_INVALID] = function(array, element) {console.error('No encode method found for invalid type. ', element)};
     Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_OBJECT] = Endecoder._encodeObject;
     Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_ARRAY] = Endecoder._encodeArray;
     Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_INTEGER] = Endecoder._encodeInteger;
@@ -379,8 +392,9 @@ Endecoder._initialize = function() {
     Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_STRING] = Endecoder._encodeString;
     Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_BOOLEAN] = Endecoder._encodeBoolean;
     Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_ENUM] = Endecoder._encodeEnum;
+    Endecoder.ENCODE_FUNCTION_MAP[Endecoder.TYPE_NULL] = Endecoder._encodeNull;
 
-    Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_NULL] = function() {throw 'No decode function defined for type null.'};
+    Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_INVALID] = function(element) {console.error('No decode method found for invalid type. ', element)};
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_OBJECT] = Endecoder._decodeObject;
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_ARRAY] = Endecoder._decodeArray;
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_INTEGER] = Endecoder._decodeInteger;
@@ -388,6 +402,9 @@ Endecoder._initialize = function() {
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_STRING] = Endecoder._decodeString;
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_BOOLEAN] = Endecoder._decodeBoolean;
     Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_ENUM] = Endecoder._decodeEnum;
+    Endecoder.DECODE_FUNCTION_MAP[Endecoder.TYPE_NULL] = Endecoder._decodeNull;
 };
 
 Endecoder._initialize();
+
+module.exports = Endecoder;
