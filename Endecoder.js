@@ -57,8 +57,8 @@ Endecoder._encodeObject = function(array, element, template) {
     array.push(Endecoder.TYPE_OBJECT);
 
     const templateKeys = Object.keys(template);
-    if (templateKeys.length > 255) {
-        throw 'Template object must have less than 256 keys.';
+    if (templateKeys.length > 256) {
+        throw 'Template object must have less than or equal to 256 keys.';
     }
     templateKeys.sort();
 
@@ -85,8 +85,8 @@ Endecoder._encodeObject = function(array, element, template) {
 Endecoder._encodeArray = function(array, element, template) {
     array.push(Endecoder.TYPE_ARRAY);
 
-    if (element.length > 255) {
-        throw 'Array size must be less than 256.';
+    if (element.length > 256) {
+        throw 'Array size must be less than or equal to 256.';
     }
 
     array.push(element.length);
@@ -159,8 +159,8 @@ Endecoder._encodeBoolean = function(array, element) {
 Endecoder._encodeEnum = function(array, element, template) {
     array.push(Endecoder.TYPE_ENUM);
 
-    if (template.length > 255) {
-        throw 'The template enum set must have less than 256 entries.';
+    if (template.length > 256) {
+        throw 'The template enum set must have less than or equal to 256 entries.';
     }
 
     const index = template.indexOf(element);
