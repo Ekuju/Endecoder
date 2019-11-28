@@ -41,7 +41,7 @@ Endecoder.encode = function(element, template) {
 };
 
 Endecoder.decode = function(array, template) {
-    if (array instanceof ArrayBuffer) {
+    if (!(array instanceof Uint8Array)) {
         array = new Uint8Array(array);
     }
 
@@ -85,11 +85,12 @@ Endecoder._encodeObject = function(array, element, template) {
 Endecoder._encodeArray = function(array, element, template) {
     array.push(Endecoder.TYPE_ARRAY);
 
-    if (element.length > 256) {
+    if (element.length > 65536) {
         throw 'Array size must be less than or equal to 256.';
     }
 
-    array.push(element.length);
+    array.push((element.length & 0xff00) >> 8);
+    array.push(element.length & 0x00ff);
 
     const templatePart = template[0];
     for (let i = 0; i < element.length; i++) {
@@ -205,7 +206,7 @@ Endecoder._decodeObject = function(array, template) {
 };
 
 Endecoder._decodeArray = function(array, template) {
-    const length = array[Endecoder._index++];
+    const length = (array[Endecoder._index++] << 8) | array[Endecoder._index++];
 
     const finalArray = [];
 
