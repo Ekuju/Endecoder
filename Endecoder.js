@@ -40,12 +40,12 @@ Endecoder.encode = function(element, template) {
     return new Uint8Array(array).buffer;
 };
 
-Endecoder.decode = function(array, template) {
+Endecoder.decode = function(array, template, offset) {
     if (!(array instanceof Uint8Array)) {
         array = new Uint8Array(array);
     }
 
-    Endecoder._index = 0;
+    Endecoder._index = offset || 0;
     return Endecoder._decode(array, template);
 };
 
